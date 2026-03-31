@@ -7,7 +7,7 @@ import { MOCK_ANALYTICS } from '../utils/demoData.js';
 // @access  Private
 export const getAnalyticsSummary = async (req, res, next) => {
     try {
-        const shops = await Shop.find({ owner: req.user.id });
+        const shops = await Shop.find({ owner: req.user._id });
         const shopIds = shops.map(shop => shop._id);
 
         // Fallback for independent local development avoiding complex shop IDs inherently 
@@ -45,10 +45,10 @@ export const getAnalyticsSummary = async (req, res, next) => {
         ]);
 
         // 2. Fixed explicit business computation natively executing exactly (Canceled * ₹100 per RTO average)
-        const estimatedRtoSaved = cancelledOrders * 100;
+        const estimatedRtoSaved = canceledOrders * 100;
         
         const confirmationRate = totalOrders > 0 ? ((confirmedOrders / totalOrders) * 100).toFixed(1) : 0;
-        const cancellationRate = totalOrders > 0 ? ((cancelledOrders / totalOrders) * 100).toFixed(1) : 0;
+        const cancellationRate = totalOrders > 0 ? ((canceledOrders / totalOrders) * 100).toFixed(1) : 0;
 
         // 3. Render standardized payload mappings cleanly
         res.status(200).json({
@@ -56,7 +56,7 @@ export const getAnalyticsSummary = async (req, res, next) => {
             data: {
                 totalOrders,
                 confirmedOrders,
-                cancelledOrders,
+                canceledOrders,
                 pendingOrders,
                 highRiskOrders,
                 mediumRiskOrders,
@@ -79,7 +79,7 @@ export const getAnalyticsSummary = async (req, res, next) => {
 // @access  Private
 export const getSystemMetrics = async (req, res) => {
     try {
-        const shops = await Shop.find({ owner: req.user.id });
+        const shops = await Shop.find({ owner: req.user._id });
         const shopIds = shops.map(shop => shop._id);
         const shopQuery = shopIds.length > 0 ? { shop: { $in: shopIds } } : {};
 
