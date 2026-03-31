@@ -1,6 +1,6 @@
 import fetch from 'node-fetch';
 
-const WEBHOOK_URL = 'http://localhost:5000/api/webhooks/shopify/order-created';
+const WEBHOOK_URL = 'https://codit-backend.onrender.com/api/webhooks/shopify/order-created';
 
 const mockShopifyPayload = {
     id: 1234567890,
