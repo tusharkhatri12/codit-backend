@@ -36,7 +36,7 @@ export const generateMockOrders = () => {
 export const MOCK_ANALYTICS = {
     totalOrders: 15,
     confirmedOrders: 9,
-    cancelledOrders: 3,
+    canceledOrders: 3,
     pendingOrders: 3,
     highRiskOrders: 2,
     mediumRiskOrders: 5,

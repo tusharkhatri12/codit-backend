@@ -152,12 +152,12 @@ export const cancelOrder = async (req, res) => {
         const order = await Order.findById(req.params.id);
         if (!order) return res.status(404).json({ success: false, error: 'Order not found' });
 
-        order.orderStatus = 'cancelled';
-        order.status = 'cancelled';
+        order.orderStatus = 'canceled';
+        order.status = 'canceled';
         order.isHeld = false;
         await order.save();
 
-        res.status(200).json({ success: true, message: 'Order cancelled', data: order });
+        res.status(200).json({ success: true, message: 'Order canceled', data: order });
     } catch (err) {
         res.status(400).json({ success: false, error: err.message });
     }

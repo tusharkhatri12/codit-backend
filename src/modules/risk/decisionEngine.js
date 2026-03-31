@@ -28,11 +28,11 @@ export const applyDecision = (order, replyType) => {
         }
     } else if (replyType === 'NO') {
         finalDecision = 'cancel';
-        orderStatus = 'cancelled';
-        decisionReason = 'Customer cancelled via WhatsApp';
+        orderStatus = 'canceled';
+        decisionReason = 'Customer canceled via WhatsApp';
     } else if (replyType === 'TIMEOUT') {
         finalDecision = 'cancel';
-        orderStatus = 'cancelled';
+        orderStatus = 'canceled';
         decisionReason = 'No reply after timeout';
     }
 

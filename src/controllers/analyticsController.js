@@ -19,11 +19,11 @@ export const getAnalyticsSummary = async (req, res, next) => {
         }
 
         // 1. Gather comprehensive order pools natively bridging global constraints
-        // We use exclusive logic so a settled order (confirmed/cancelled) doesn't stay in the "High Risk/Flagged" action bin
+        // We use exclusive logic so a settled order (confirmed/canceled) doesn't stay in the "High Risk/Flagged" action bin
         const [
             totalOrders,
             confirmedOrders,
-            cancelledOrders,
+            canceledOrders,
             pendingOrders,
             highRiskOrders,
             mediumRiskOrders,
@@ -32,7 +32,7 @@ export const getAnalyticsSummary = async (req, res, next) => {
         ] = await Promise.all([
             Order.countDocuments({ ...shopQuery }),
             Order.countDocuments({ ...shopQuery, orderStatus: 'confirmed' }),
-            Order.countDocuments({ ...shopQuery, orderStatus: 'cancelled' }),
+            Order.countDocuments({ ...shopQuery, orderStatus: 'canceled' }),
             Order.countDocuments({ ...shopQuery, orderStatus: { $in: ['new', 'pending_review', 'held'] } }),
             Order.countDocuments({ ...shopQuery, riskLevel: { $in: ['HIGH', 'CRITICAL'] }, orderStatus: { $in: ['new', 'pending_review', 'held'] } }),
             Order.countDocuments({ ...shopQuery, riskLevel: 'MEDIUM', orderStatus: { $in: ['new', 'pending_review', 'held'] } }),
@@ -103,13 +103,13 @@ export const getSystemMetrics = async (req, res) => {
 
         // --- AI Catch Rate ---
         const confirmed = await Order.countDocuments({ ...shopQuery, orderStatus: 'confirmed' });
-        const cancelled = await Order.countDocuments({ ...shopQuery, orderStatus: 'cancelled' });
-        const processed = confirmed + cancelled;
+        const canceled = await Order.countDocuments({ ...shopQuery, orderStatus: 'canceled' });
+        const processed = confirmed + canceled;
         const aiCatchRate = processed > 0 ? Number(((confirmed / processed) * 100).toFixed(1)) : 0;
 
         // --- Prevented Loss ---
-        const cancelledOrders = await Order.find({ ...shopQuery, orderStatus: 'cancelled' }).select('totalPrice');
-        const preventedLoss = cancelledOrders.reduce((sum, o) => sum + (o.totalPrice || 0), 0);
+        const canceledOrders = await Order.find({ ...shopQuery, orderStatus: 'canceled' }).select('totalPrice');
+        const preventedLoss = canceledOrders.reduce((sum, o) => sum + (o.totalPrice || 0), 0);
 
         // --- Flagged Attempts ---
         // Only count those that still need resolved attention to signify active threat monitoring
