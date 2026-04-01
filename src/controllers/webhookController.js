@@ -120,11 +120,11 @@ export const handleShopifyOrderCreate = async (req, res, next) => {
             orderData.recommendation = riskResult.recommendation;
             
             // Initial status evaluation & Auto-Hold for high risk
-            if (orderData.riskScore > 70) {
+            if (orderData.riskScore > 50) {
                 orderData.isHeld = true;
                 orderData.finalDecision = 'hold';
                 orderData.orderStatus = 'held';
-                orderData.decisionReason = 'Auto-held: High risk score (>70)';
+                orderData.decisionReason = 'Auto-held: High risk score (>50)';
                 orderData.status = 'flagged';
                 
                 // --- NEW: PARTIAL COD TRIGGER ---

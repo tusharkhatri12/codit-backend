@@ -219,12 +219,14 @@ export const createDemoOrder = async (req, res) => {
         order.whatsappMessage = `Hi! Please confirm your COD order of ₹${order.totalPrice.toLocaleString()}. Reply YES to confirm or NO to cancel.`;
         order.whatsappStatus = 'sent';
         
-        if (order.riskScore > 40) { // Lowered threshold to include High Risk in Held component
+        if (order.riskScore > 40) {
             order.isHeld = true;
             order.holdReason = 'Fraud Risk';
-            
-            // --- NEW: Trigger Partial Payment for Demo ---
-            if (order.riskScore > 70) {
+            order.orderStatus = 'held';
+            order.status = 'held';
+
+            // --- Trigger Partial Payment if Risk is > 50 ---
+            if (order.riskScore > 50) {
                 order.paymentRequired = true;
                 order.paymentAmount = 100;
                 order.paymentStatus = 'pending';
