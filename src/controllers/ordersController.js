@@ -3,6 +3,7 @@ import Shop from '../models/Shop.js';
 import { analyzeOrderIntelligence } from '../modules/risk/riskEngine.js';
 import { applyDecision } from '../modules/risk/decisionEngine.js';
 import { queueWhatsAppConfirmation } from '../queues/whatsappQueue.js';
+import { createPaymentLink } from '../services/paymentService.js';
 
 // @desc    Get all orders
 // @route   GET /api/orders
@@ -219,10 +220,23 @@ export const createDemoOrder = async (req, res) => {
         order.whatsappStatus = 'sent';
         
         if (order.riskScore > 40) { // Lowered threshold to include High Risk in Held component
-            order.orderStatus = 'held';
-            order.status = 'held';
             order.isHeld = true;
             order.holdReason = 'Fraud Risk';
+            
+            // --- NEW: Trigger Partial Payment for Demo ---
+            if (order.riskScore > 70) {
+                order.paymentRequired = true;
+                order.paymentAmount = 100;
+                order.paymentStatus = 'pending';
+                
+                try {
+                    const shortUrl = await createPaymentLink(order, order.paymentAmount);
+                    order.paymentLink = shortUrl;
+                    console.log(`[Demo] ✅ Generated Payment Link: ${shortUrl}`);
+                } catch (err) {
+                    console.error('[Demo] ❌ Link generation failed:', err.message);
+                }
+            }
         }
 
         await order.save();
@@ -253,6 +267,10 @@ export const getOrderDetails = async (req, res) => {
                 recommendation: analysis.recommendation,
                 whatsappStatus: order.whatsappStatus,
                 whatsappMessage: order.whatsappMessage,
+                paymentRequired: order.paymentRequired,
+                paymentAmount: order.paymentAmount,
+                paymentLink: order.paymentLink,
+                paymentStatus: order.paymentStatus,
                 isHeld: order.isHeld,
                 _id: order._id,
                 createdAt: order.createdAt
