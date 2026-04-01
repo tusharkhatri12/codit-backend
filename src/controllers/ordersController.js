@@ -4,6 +4,7 @@ import { analyzeOrderIntelligence } from '../modules/risk/riskEngine.js';
 import { applyDecision } from '../modules/risk/decisionEngine.js';
 import { queueWhatsAppConfirmation } from '../queues/whatsappQueue.js';
 import { createPaymentLink } from '../services/paymentService.js';
+import { cancelShopifyOrder } from '../services/shopifyService.js';
 
 // @desc    Get all orders
 // @route   GET /api/orders
@@ -157,6 +158,12 @@ export const cancelOrder = async (req, res) => {
         order.status = 'canceled';
         order.isHeld = false;
         await order.save();
+
+        // --- NEW: Sync Cancellation to Shopify ---
+        const shop = await Shop.findById(order.shop);
+        if (shop && shop.accessToken && !order.shopifyOrderId?.startsWith('demo_')) {
+            await cancelShopifyOrder(shop.domain, shop.accessToken, order.shopifyOrderId, 'customer');
+        }
 
         res.status(200).json({ success: true, message: 'Order canceled', data: order });
     } catch (err) {

@@ -6,6 +6,7 @@ import { msgQueue } from '../queues/whatsappQueue.js';
 import { sendWhatsAppMessage } from '../modules/whatsapp/whatsapp.service.js';
 import { checkOrderLimit } from '../middlewares/features.js';
 import { createPaymentLink } from '../services/paymentService.js';
+import { cancelShopifyOrder } from '../services/shopifyService.js';
 
 // @desc    Handle incoming Shopify Order Creation Webhook
 // @route   POST /api/webhooks/shopify/order-created
@@ -195,6 +196,13 @@ export const handleTwilioReply = async (req, res, next) => {
             matchedOrder.finalDecision = decision.finalDecision;
             matchedOrder.whatsappStatus = 'rejected';
             matchedOrder.repliedAt = new Date();
+            
+            // --- NEW: Sync Cancellation to Shopify ---
+            const shop = await Shop.findById(matchedOrder.shop);
+            if (shop && shop.accessToken && !matchedOrder.shopifyOrderId?.startsWith('demo_')) {
+                await cancelShopifyOrder(shop.domain, shop.accessToken, matchedOrder.shopifyOrderId, 'customer');
+            }
+            
             await sendWhatsAppMessage(normalizedPhone, "Your order has been cancelled.");
         }
 
