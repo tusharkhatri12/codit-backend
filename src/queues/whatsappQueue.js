@@ -6,8 +6,7 @@ import { sendWhatsAppMessage } from '../modules/whatsapp/whatsapp.service.js';
 import dotenv from 'dotenv';
 dotenv.config();
 
-// Default to localhost if Redis env vars are missing. 
-// For production, point REDIS_URL to Upstash or Redis Cloud
+// Redis Connection Setup
 let connection;
 if (process.env.REDIS_URL) {
     connection = new IORedis(process.env.REDIS_URL, { maxRetriesPerRequest: null });
@@ -19,81 +18,93 @@ if (process.env.REDIS_URL) {
     });
 }
 
+// 1. Initialize Queue
 export const msgQueue = new Queue('whatsapp-messages', { connection });
 
-// Initialize Worker
+// 2. Initialize Worker
 const msgWorker = new Worker('whatsapp-messages', async job => {
     const { orderId, shopId } = job.data;
-    console.log(`[Worker] Processing Job ${job.id} for Order ID: ${orderId}`);
+    console.log(`\n[WhatsApp Worker] 🚀 Processing Job ${job.id} for Order: ${orderId}`);
 
     try {
         const order = await Order.findById(orderId);
         const shop = await Shop.findById(shopId);
 
         if (!order || !shop) {
-            throw new Error(`Order or Shop not found. O:${orderId} S:${shopId}`);
+            console.error(`[WhatsApp Worker] ❌ Order or Shop not found. Order: ${orderId}, Shop: ${shopId}`);
+            return;
         }
 
-        // Use the explicit exact message template outlined in the design spec
-        let formattedTemplateString;
-        const formattedTargetAmount = order.totalPrice ? order.totalPrice.toLocaleString() : 'X';
+        // --- CONTEXTUAL MESSAGE GENERATION ---
+        let messageText;
+        const total = order.totalPrice ? order.totalPrice.toLocaleString() : 'X';
+        const partial = order.paymentAmount || 100;
 
         if (order.paymentRequired && order.paymentStatus === 'pending') {
-            const partialAmount = order.paymentAmount || 100;
-            formattedTemplateString = `To confirm your COD order of ₹${formattedTargetAmount}, please pay ₹${partialAmount} advance: ${order.paymentLink || 'Link pending'}\n\nThis will be adjusted in your final amount.`;
+            const link = order.paymentLink || 'Link Pending';
+            messageText = `Hi 👋 To confirm your COD order of ₹${total}, please pay ₹${partial} advance: ${link}\n\nThis amount will be adjusted in your final order.`;
         } else {
-            formattedTemplateString = `Hi! Please confirm your COD order of ₹${formattedTargetAmount}. Reply YES to confirm or NO to cancel.`;
+            messageText = `Hi! Please confirm your COD order of ₹${total}. Reply YES to confirm or NO to cancel.`;
         }
 
-        // Wait for genuine external API Response locally
-        const apiResponse = await sendWhatsAppMessage(order.customer?.phone, formattedTemplateString);
+        console.log(`[WhatsApp Worker] 📝 Sending Message to ${order.phone}:`);
+        console.log(`--------------------------------------------------`);
+        console.log(messageText);
+        console.log(`--------------------------------------------------`);
 
-        if (apiResponse.success) {
-            // Update order status in DB
-            order.whatsappDeliveryStatus = 'sent';
-            await order.save();
-            console.log(`[Worker] Job ${job.id} Successful. Message sent.`);
-        } else {
-            // If failed due to no phone number, we don't throw an error to trigger a retry.
-            // We just log it and mark it failed permanently.
+        // Use the phone from order or customer
+        const targetPhone = order.phone || order.customer?.phone;
+        if (!targetPhone) {
+            console.warn(`[WhatsApp Worker] ⚠️ No phone number found for Order ${order.orderNumber}. Job aborted.`);
             order.whatsappDeliveryStatus = 'failed';
             await order.save();
-            console.warn(`[Worker] Job ${job.id} Failed: ${apiResponse.reason}`);
+            return;
+        }
+
+        // 3. Dispatch Message
+        const apiResponse = await sendWhatsAppMessage(targetPhone, messageText);
+
+        if (apiResponse.success) {
+            order.whatsappDeliveryStatus = 'sent';
+            await order.save();
+            console.log(`[WhatsApp Worker] ✅ Job ${job.id} SUCCESS. SID: ${apiResponse.sid}`);
+        } else {
+            order.whatsappDeliveryStatus = 'failed';
+            await order.save();
+            console.error(`[WhatsApp Worker] ❌ Job ${job.id} FAILED: ${apiResponse.error}`);
         }
 
     } catch (error) {
-        console.error(`[Worker] Job ${job.id} Errored: ${error.message}`);
-        // Throwing error triggers BullMQ's automatic retry mechanism based on job options
-        throw error;
+        console.error(`[WhatsApp Worker] ❌ System Error in Job ${job.id}:`, error.message);
+        throw error; // Let BullMQ handle retry
     }
-
 }, { connection });
 
 msgWorker.on('failed', (job, err) => {
-    console.log(`[BullMQ] Job ${job.id} has failed with ${err.message}`);
+    console.log(`[BullMQ] ❌ Job ${job.id} definitively failed: ${err.message}`);
 });
 
 msgWorker.on('completed', (job) => {
-    console.log(`[BullMQ] Job ${job.id} has completed successfully`);
+    console.log(`[BullMQ] ✅ Job ${job.id} fully completed`);
 });
 
 export const initQueues = () => {
     console.log('✅ BullMQ WhatsApp Worker ready to process jobs');
 };
 
+/**
+ * Helper to queue messages from any controller
+ */
 export const queueWhatsAppConfirmation = async (order) => {
     if (!order || !order._id) return;
     
-    await msgQueue.add('send-confirmation', {
+    await msgQueue.add('send-whatsapp', {
         orderId: order._id,
         shopId: order.shop
     }, {
-        attempts: 3,
-        backoff: {
-            type: 'exponential',
-            delay: 1000
-        }
+        attempts: 2,
+        backoff: { type: 'exponential', delay: 3000 }
     });
     
-    console.log(`[Queue] Added WhatsApp confirmation job for Order: ${order.orderNumber || order._id}`);
+    console.log(`[Queue] 📮 Enqueued WhatsApp Job for Order #${order.orderNumber}`);
 };
