@@ -14,7 +14,7 @@ dotenv.config();
 connectDB();
 
 const app = express();
-const origin = process.env.FRONTEND_URL || 'https://codit-frontend.vercel.app';
+const origin = process.env.FRONTEND_URL || 'https://www.coditai.in/';
 
 // Middleware
 app.use(cors({
