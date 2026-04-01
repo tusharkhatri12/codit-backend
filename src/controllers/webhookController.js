@@ -16,6 +16,10 @@ import { createPaymentLink } from '../services/paymentService.js';
 export const handleShopifyOrderCreate = async (req, res, next) => {
     try {
         const payload = req.body;
+        console.log('\n[Shopify Webhook] 📦 New Order Payload Received');
+        console.log(`[Shopify Webhook] Gateway: ${payload.gateway}`);
+        console.log(`[Shopify Webhook] Financial Status: ${payload.financial_status}`);
+        
         // Shopify sends the domain in X-Shopify-Shop-Domain header
         const shopDomain = req.headers['x-shopify-shop-domain'] || payload.shop_domain || payload.domain;
 
@@ -24,11 +28,6 @@ export const handleShopifyOrderCreate = async (req, res, next) => {
             return res.status(400).json({ success: false, error: 'Shop domain identifyer is required' });
         }
 
-        const shop = await Shop.findOne({ domain: shopDomain });
-        if (!shop) {
-            console.error(`[Webhook] Shop not found: ${shopDomain}`);
-            return res.status(404).json({ success: false, error: 'Shop not registered' });
-        }
 
         // Validate plan limits
         await checkOrderLimit(shop._id);
@@ -51,6 +50,7 @@ export const handleShopifyOrderCreate = async (req, res, next) => {
         // Determine if it's a COD order (using gateway and financial_status)
         // logic: gateway === "cod" OR financial_status === "pending"
         const isCOD = (gateway?.toLowerCase() === 'cod' || financial_status?.toLowerCase() === 'pending');
+        console.log(`[Shopify Webhook] 🕵️ COD Detection: ${isCOD ? '✅ YES' : '❌ NO'} (Gateway: ${gateway}, Status: ${financial_status})`);
 
         // Map payload to our schema
         const orderData = {
