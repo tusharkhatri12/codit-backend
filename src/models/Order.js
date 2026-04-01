@@ -137,6 +137,24 @@ const orderSchema = new mongoose.Schema({
     heldAt: {
         type: Date
     },
+    // Partial payment system
+    paymentRequired: {
+        type: Boolean,
+        default: false
+    },
+    paymentAmount: {
+        type: Number,
+        default: 0
+    },
+    paymentLink: {
+        type: String,
+        default: ''
+    },
+    paymentStatus: {
+        type: String,
+        enum: ['pending', 'paid', 'failed'],
+        default: 'pending'
+    },
     createdAt: {
         type: Date,
         default: Date.now

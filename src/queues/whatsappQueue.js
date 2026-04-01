@@ -35,9 +35,15 @@ const msgWorker = new Worker('whatsapp-messages', async job => {
         }
 
         // Use the explicit exact message template outlined in the design spec
-        // "Hi! Please confirm your COD order of ₹{{amount}}. Reply YES to confirm or NO to cancel."
+        let formattedTemplateString;
         const formattedTargetAmount = order.totalPrice ? order.totalPrice.toLocaleString() : 'X';
-        const formattedTemplateString = `Hi! Please confirm your COD order of ₹${formattedTargetAmount}. Reply YES to confirm or NO to cancel.`;
+
+        if (order.paymentRequired && order.paymentStatus === 'pending') {
+            const partialAmount = order.paymentAmount || 100;
+            formattedTemplateString = `To confirm your COD order of ₹${formattedTargetAmount}, please pay ₹${partialAmount} advance: ${order.paymentLink || 'Link pending'}\n\nThis will be adjusted in your final amount.`;
+        } else {
+            formattedTemplateString = `Hi! Please confirm your COD order of ₹${formattedTargetAmount}. Reply YES to confirm or NO to cancel.`;
+        }
 
         // Wait for genuine external API Response locally
         const apiResponse = await sendWhatsAppMessage(order.customer?.phone, formattedTemplateString);

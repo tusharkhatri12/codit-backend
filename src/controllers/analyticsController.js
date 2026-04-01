@@ -28,6 +28,7 @@ export const getAnalyticsSummary = async (req, res, next) => {
             highRiskOrders,
             mediumRiskOrders,
             lowRiskOrders,
+            advancePaymentsCollected,
             recentActivity
         ] = await Promise.all([
             Order.countDocuments({ ...shopQuery }),
@@ -37,12 +38,19 @@ export const getAnalyticsSummary = async (req, res, next) => {
             Order.countDocuments({ ...shopQuery, riskLevel: { $in: ['HIGH', 'CRITICAL'] }, orderStatus: { $in: ['new', 'pending_review', 'held'] } }),
             Order.countDocuments({ ...shopQuery, riskLevel: 'MEDIUM', orderStatus: { $in: ['new', 'pending_review', 'held'] } }),
             Order.countDocuments({ ...shopQuery, riskLevel: { $in: ['LOW', 'SAFE'] }, orderStatus: { $in: ['new', 'pending_review', 'held'] } }),
+            // 4. Calculate Advance Payments Collected
+            Order.aggregate([
+                { $match: { ...shopQuery, paymentStatus: 'paid' } },
+                { $group: { _id: null, total: { $sum: '$paymentAmount' } } }
+            ]),
             // Retain recent activity for UI tables inherently without breaking loops
             Order.find({ ...shopQuery })
                 .sort({ createdAt: -1 })
                 .limit(10)
-                .select('orderNumber shopifyOrderId totalPrice riskLevel createdAt whatsappStatus orderStatus')
+                .select('orderNumber shopifyOrderId totalPrice riskLevel createdAt whatsappStatus orderStatus paymentStatus paymentRequired')
         ]);
+
+        const advanceAmountCollected = (advancePaymentsCollected && advancePaymentsCollected.length > 0) ? advancePaymentsCollected[0].total : 0;
 
         // 2. Fixed explicit business computation natively executing exactly (Canceled * ₹100 per RTO average)
         const estimatedRtoSaved = canceledOrders * 100;
@@ -64,6 +72,7 @@ export const getAnalyticsSummary = async (req, res, next) => {
                 confirmationRate: Number(confirmationRate),
                 cancellationRate: Number(cancellationRate),
                 estimatedRtoSaved,
+                advancePaymentsCollected: advanceAmountCollected,
                 recentActivity // Appended exclusively to prevent UI table `.map` destructured crashes internally
             }
         });
