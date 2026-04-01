@@ -27,7 +27,11 @@ const msgWorker = new Worker('whatsapp-messages', async job => {
     console.log(`\n[WhatsApp Worker] 🚀 Processing Job ${job.id} for Order: ${orderId}`);
 
     try {
-        const order = await Order.findById(orderId);
+        // --- SAFETY DELAY ---
+        // Give the DB a moment to ensure the previous 'save' with paymentLink is fully finished
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        let order = await Order.findById(orderId);
         const shop = await Shop.findById(shopId);
 
         if (!order || !shop) {
@@ -40,9 +44,18 @@ const msgWorker = new Worker('whatsapp-messages', async job => {
         const total = order.totalPrice ? order.totalPrice.toLocaleString() : 'X';
         const partial = order.paymentAmount || 100;
 
+        // Ensure we have the most recent link
         if (order.paymentRequired && order.paymentStatus === 'pending') {
-            const link = order.paymentLink || 'Link Pending';
-            messageText = `Hi 👋 To confirm your COD order of ₹${total}, please pay ₹${partial} advance: ${link}\n\nThis amount will be adjusted in your final order.`;
+            const link = order.paymentLink;
+            
+            if (!link || link === 'Link Pending') {
+                console.warn(`[WhatsApp Worker] ⚠️ Link still missing for #${order.orderNumber}. Attempting one last refresh...`);
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                order = await Order.findById(orderId);
+            }
+
+            const finalLink = order.paymentLink || 'Link Pending (Contact Support)';
+            messageText = `Hi 👋 To confirm your COD order of ₹${total}, please pay ₹${partial} advance: ${finalLink}\n\nThis amount will be adjusted in your final order.`;
         } else {
             messageText = `Hi! Please confirm your COD order of ₹${total}. Reply YES to confirm or NO to cancel.`;
         }
@@ -52,7 +65,6 @@ const msgWorker = new Worker('whatsapp-messages', async job => {
         console.log(messageText);
         console.log(`--------------------------------------------------`);
 
-        // Use the phone from order or customer
         const targetPhone = order.phone || order.customer?.phone;
         if (!targetPhone) {
             console.warn(`[WhatsApp Worker] ⚠️ No phone number found for Order ${order.orderNumber}. Job aborted.`);
@@ -76,7 +88,7 @@ const msgWorker = new Worker('whatsapp-messages', async job => {
 
     } catch (error) {
         console.error(`[WhatsApp Worker] ❌ System Error in Job ${job.id}:`, error.message);
-        throw error; // Let BullMQ handle retry
+        throw error;
     }
 }, { connection });
 
