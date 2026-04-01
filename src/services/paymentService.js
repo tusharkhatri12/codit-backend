@@ -27,9 +27,8 @@ if (!isDummyMode) {
 export const createPaymentLink = async (order, amount) => {
     try {
         if (isDummyMode) {
-            console.log(`[PaymentService] 🧪 DUMMY MODE: Generating mock Razorpay link for Order ${order.orderNumber}`);
-            // Return a realistic looking dummy link (can be used for testing flow)
-            return `https://rzp.io/i/mock_${order.shopifyOrderId || Date.now()}`;
+            console.log(`[PaymentService] 🧪 DUMMY MODE: Using personal handle for Order ${order.orderNumber}`);
+            return `https://razorpay.me/@tusharkhatri1064?amount=${amount}&reason=Order_${order.orderNumber}`;
         }
 
         const options = {
@@ -61,6 +60,6 @@ export const createPaymentLink = async (order, amount) => {
     } catch (error) {
         console.error('[PaymentService] ❌ Razorpay Link Creation Failed:', error.message);
         // Fallback to dummy link in dev/test if error occurs (optional)
-        return `https://rzp.io/i/fallback_${Date.now()}`;
+        return `https://razorpay.me/@tusharkhatri1064?amount=${amount}&reason=Order_${order.orderNumber}`;
     }
 };
