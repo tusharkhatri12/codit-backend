@@ -1,6 +1,6 @@
 import Order from '../models/Order.js';
 import Shop from '../models/Shop.js';
-import { calculateRisk } from '../modules/risk/riskEngine.js';
+import { calculateRisk, analyzeOrderIntelligence } from '../modules/risk/riskEngine.js';
 import { applyDecision } from '../modules/risk/decisionEngine.js';
 import { msgQueue } from '../queues/whatsappQueue.js';
 import { sendWhatsAppMessage } from '../modules/whatsapp/whatsapp.service.js';
@@ -50,7 +50,7 @@ export const handleShopifyOrderCreate = async (req, res, next) => {
         
         console.log(`[Shopify Webhook] 🕵️ COD Detection: ${isCOD ? '✅ YES' : '❌ NO'}`);
 
-        // 3. Map payload to schema
+        // 3. Map payload to schema template
         const orderData = {
             shop: shop._id,
             shopifyOrderId: (id || '').toString(),
@@ -94,25 +94,14 @@ export const handleShopifyOrderCreate = async (req, res, next) => {
             orderData.finalDecision = 'auto_confirm';
             orderData.decisionReason = 'Prepaid order: Verified via gateway';
         } else {
-            const phoneToSweep = orderData.phone;
-            let customerHistory = { totalOrders: 0, confirmedOrders: 0, cancelledOrders: 0, recentOrders: 0 };
+            // --- COD FLOW: Risk Engine & Decisions ---
+            // Use the centralized intelligence engine for consistent scoring
+            const intelligence = await analyzeOrderIntelligence(orderData);
             
-            if (phoneToSweep) {
-                const previousOrders = await Order.find({ phone: phoneToSweep });
-                const now = Date.now();
-                customerHistory = {
-                    totalOrders: previousOrders.length,
-                    confirmedOrders: previousOrders.filter(o => o.orderStatus === 'confirmed').length,
-                    cancelledOrders: previousOrders.filter(o => o.orderStatus === 'cancelled').length,
-                    recentOrders: previousOrders.filter(o => (now - new Date(o.createdAt).getTime()) < 24 * 60 * 60 * 1000).length
-                };
-            }
-
-            const riskResult = calculateRisk(orderData, customerHistory);
-            orderData.riskScore = riskResult.score;
-            orderData.riskLevel = riskResult.level;
-            orderData.riskReasons = riskResult.reasons;
-            orderData.recommendation = riskResult.recommendation;
+            orderData.riskScore = intelligence.riskScore;
+            orderData.riskLevel = intelligence.riskLevel;
+            orderData.riskReasons = intelligence.riskReasons;
+            orderData.recommendation = intelligence.recommendation;
             
             // Auto-Hold for high risk (> 70 as per final spec)
             if (orderData.riskScore > 70) {
