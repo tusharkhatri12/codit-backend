@@ -71,6 +71,7 @@ startReminderJob();
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/auth', authRoutes); // Support top-level /auth/google and others
 app.use('/api/shops', shopsRoutes);
 app.use('/api/orders', ordersRoutes);
 app.use('/api/analytics', analyticsRoutes);
