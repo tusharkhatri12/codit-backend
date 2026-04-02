@@ -1,4 +1,5 @@
 import { signup, login, getMe, sendOTP, verifyOTP, googleCallback } from '../controllers/authController.js';
+import express from 'express';
 import passport from 'passport';
 import { protect } from '../middlewares/auth.js';
 
