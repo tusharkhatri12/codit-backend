@@ -42,7 +42,10 @@ export const syncShopifyOrders = async (shopDomain, accessToken) => {
         for (const so of shopifyOrders) {
             // Check for duplicate
             const exists = await Order.findOne({ shopifyOrderId: so.id.toString() });
-            if (exists) continue;
+            if (exists) {
+                console.log(`[Sync] ⏭️ Skipping existing order: ${so.name || so.id}`);
+                continue;
+            }
 
             const phone = so.phone || so.customer?.phone || so.shipping_address?.phone || null;
             const isCod = (so.gateway?.toLowerCase() === 'cod' || so.financial_status?.toLowerCase() === 'pending');
