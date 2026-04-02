@@ -67,6 +67,60 @@ export const registerWebhook = async (shop, accessToken) => {
 };
 
 /**
+ * Start Initial Data Sync
+ * @param {String} shopDomain - The .myshopify.com domain
+ * @param {String} accessToken - Shopify access token
+ * @param {Object} ShopModel - The Shop Mongoose model
+ */
+export const startInitialSync = async (shopDomain, accessToken, ShopModel) => {
+    try {
+        console.log(`[Sync] Starting initial sync for ${shopDomain}...`);
+        
+        // 1. Mark as in-progress
+        await ShopModel.findOneAndUpdate({ domain: shopDomain }, { 
+            syncStatus: 'in-progress',
+            syncProgress: 10 
+        });
+
+        // 2. Fetch Order Count from Shopify
+        const url = `https://${shopDomain}/admin/api/2023-10/orders/count.json?status=any`;
+        const response = await axios.get(url, {
+            headers: { 'X-Shopify-Access-Token': accessToken }
+        });
+        const orderCount = response.data.count || 0;
+        
+        // 3. Update with real order count and progress
+        await ShopModel.findOneAndUpdate({ domain: shopDomain }, { 
+            ordersFound: orderCount,
+            customersLinked: Math.floor(orderCount * 0.8), // Mock customer count based on orders
+            syncProgress: 40
+        });
+
+        // 4. Simulate the rest of the "sync" process (analysis, etc.)
+        // In a real app, this would be a background queue job.
+        setTimeout(async () => {
+             await ShopModel.findOneAndUpdate({ domain: shopDomain }, { 
+                syncProgress: 75
+            });
+            
+            setTimeout(async () => {
+                await ShopModel.findOneAndUpdate({ domain: shopDomain }, { 
+                    syncProgress: 100,
+                    syncStatus: 'completed'
+                });
+                console.log(`[Sync] Completed sync for ${shopDomain}`);
+            }, 3000);
+        }, 3000);
+
+    } catch (error) {
+        console.error(`[Sync Error] Failed for ${shopDomain}:`, error.message);
+        await ShopModel.findOneAndUpdate({ domain: shopDomain }, { 
+            syncStatus: 'failed'
+        });
+    }
+};
+
+/**
  * Cancel an order in Shopify
  * @param {String} shopDomain - The .myshopify.com domain
  * @param {String} accessToken - The offline access token

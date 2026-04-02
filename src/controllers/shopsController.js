@@ -49,14 +49,40 @@ export const connectShop = async (req, res, next) => {
 // @access  Private
 export const getMyShops = async (req, res, next) => {
     try {
-        const shops = await Shop.find({ owner: req.user.id });
+        const shops = await Shop.find({ owner: req.user._id });
+        res.status(200).json({ success: true, data: shops });
+    } catch (err) {
+        res.status(400).json({ success: false, error: err.message });
+    }
+};
+
+/**
+ * Get Shop Sync Status
+ */
+export const getSyncStatus = async (req, res) => {
+    try {
+        const { shop } = req.query;
+        
+        if (!shop) {
+            return res.status(400).json({ success: false, error: 'Shop domain required' });
+        }
+
+        const shopRecord = await Shop.findOne({ domain: shop });
+        
+        if (!shopRecord) {
+            return res.status(404).json({ success: false, error: 'Shop not found' });
+        }
 
         res.status(200).json({
             success: true,
-            count: shops.length,
-            data: shops
+            data: {
+                syncStatus: shopRecord.syncStatus,
+                syncProgress: shopRecord.syncProgress,
+                ordersFound: shopRecord.ordersFound,
+                customersLinked: shopRecord.customersLinked
+            }
         });
-    } catch (err) {
-        res.status(400).json({ success: false, error: err.message });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
     }
 };

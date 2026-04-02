@@ -24,6 +24,23 @@ const shopSchema = new mongoose.Schema({
         enabled: { type: Boolean, default: true },
         templateId: { type: String }
     },
+    syncStatus: {
+        type: String,
+        enum: ['pending', 'in-progress', 'completed', 'failed'],
+        default: 'pending'
+    },
+    syncProgress: {
+        type: Number,
+        default: 0
+    },
+    ordersFound: {
+        type: Number,
+        default: 0
+    },
+    customersLinked: {
+        type: Number,
+        default: 0
+    },
     createdAt: {
         type: Date,
         default: Date.now

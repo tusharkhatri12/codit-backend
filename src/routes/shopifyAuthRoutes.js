@@ -97,9 +97,14 @@ router.get('/shopify/callback', async (req, res) => {
         console.log(`[OAuth Callback] Registering webhooks for ${shop}...`);
         await registerWebhook(shop, accessToken);
 
-        // Redirect back to frontend
+        // Start Initial Sync (non-blocking)
+        import('../services/shopifyService.js').then(service => {
+            service.startInitialSync(shop, accessToken, Shop);
+        });
+
+        // Redirect back to frontend syncing page
         const frontendUrl = process.env.FRONTEND_URL || 'https://www.coditai.in/';
-        res.redirect(`${frontendUrl}dashboard?connected=true&shop=${shop}`);
+        res.redirect(`${frontendUrl}syncing?shop=${shop}`);
 
     } catch (error) {
         console.error('[OAuth Callback Error]:', error.response?.data || error.message);

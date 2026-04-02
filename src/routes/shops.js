@@ -1,10 +1,11 @@
-import express from 'express';
-import { connectShop, getMyShops } from '../controllers/shopsController.js';
+import { connectShop, getMyShops, getSyncStatus } from '../controllers/shopsController.js';
 import { protect } from '../middlewares/auth.js';
 
 const router = express.Router();
 
-router.use(protect); // All shop routes protected
+router.get('/sync-status', getSyncStatus); // Public check with shop domain
+
+router.use(protect); // Other shop routes protected
 
 router.route('/')
     .get(getMyShops);
