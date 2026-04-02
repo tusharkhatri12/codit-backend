@@ -1,14 +1,11 @@
+import './config/env.js'; // MUST BE FIRST
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import morgan from 'morgan';
 import helmet from 'helmet';
-import dotenv from 'dotenv';
 import connectDB from './config/db.js';
-
-// Load env vars
-dotenv.config();
 
 // Connect to Database
 connectDB();

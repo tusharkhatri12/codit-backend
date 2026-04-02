@@ -43,7 +43,8 @@ export const exchangeCodeForToken = async (shop, code) => {
 export const registerWebhook = async (shop, accessToken) => {
     try {
         const url = `https://${shop}/admin/api/2023-10/webhooks.json`;
-        const webhookUrl = `${process.env.BACKEND_URL}/api/webhooks/shopify/order-created`;
+        const baseUrl = (process.env.BACKEND_URL || 'https://codit-backend.onrender.com').replace(/\/$/, '');
+        const webhookUrl = `${baseUrl}/api/webhooks/shopify/order-created`;
         
         const response = await axios.post(url, {
             webhook: {

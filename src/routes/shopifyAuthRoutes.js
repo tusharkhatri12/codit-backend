@@ -103,8 +103,8 @@ router.get('/shopify/callback', async (req, res) => {
         });
 
         // Redirect back to frontend syncing page
-        const frontendUrl = process.env.FRONTEND_URL || 'https://www.coditai.in/';
-        res.redirect(`${frontendUrl}syncing?shop=${shop}`);
+        const frontendUrl = (process.env.FRONTEND_URL || 'https://www.coditai.in').replace(/\/$/, '');
+        res.redirect(`${frontendUrl}/syncing?shop=${shop}`);
 
     } catch (error) {
         console.error('[OAuth Callback Error]:', error.response?.data || error.message);
