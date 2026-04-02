@@ -46,9 +46,13 @@ export const sendOTP = async (req, res) => {
         user.otpExpiry = otpExpiry;
         await user.save();
 
-        const emailSent = await sendVerificationEmail(email, otp);
-        if (!emailSent) {
-            return res.status(500).json({ success: false, error: 'Failed to send verification email' });
+        const emailResult = await sendVerificationEmail(email, otp);
+        if (emailResult !== true) {
+            return res.status(500).json({ 
+                success: false, 
+                error: 'Failed to send verification email. Please check server logs or EMAIL_USER/PASS credentials.',
+                details: emailResult // Return the error message if we captured it
+            });
         }
 
         res.status(200).json({ success: true, message: 'OTP sent to email' });

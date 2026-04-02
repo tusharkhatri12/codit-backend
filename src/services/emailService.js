@@ -42,6 +42,6 @@ export const sendVerificationEmail = async (email, otp) => {
         return true;
     } catch (error) {
         console.error(`[Email Error] ❌ Failed to send to ${email}:`, error.message);
-        return false;
+        return error.message; // Return the specific error message
     }
 };
