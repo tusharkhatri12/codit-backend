@@ -1,3 +1,4 @@
+import User from '../models/User.js';
 import jwt from 'jsonwebtoken';
 import passport from 'passport';
 import { sendVerificationEmail } from '../services/emailService.js';
