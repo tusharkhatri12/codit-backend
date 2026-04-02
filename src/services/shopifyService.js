@@ -5,6 +5,68 @@ import axios from 'axios';
  */
 
 /**
+ * Generate Shopify OAuth Authorization URL
+ * @param {String} shop - The .myshopify.com domain
+ * @param {String} state - Random security state (contains userId)
+ * @returns {String}
+ */
+export const getOAuthUrl = (shop, state) => {
+    const apiKey = process.env.SHOPIFY_API_KEY;
+    const scopes = process.env.SHOPIFY_SCOPES;
+    const redirectUri = process.env.SHOPIFY_REDIRECT_URI;
+    
+    return `https://${shop}/admin/oauth/authorize?client_id=${apiKey}&scope=${scopes}&redirect_uri=${redirectUri}&state=${state}`;
+};
+
+/**
+ * Exchange Authorization Code for Access Token
+ * @param {String} shop - The .myshopify.com domain
+ * @param {String} code - Auth code from Shopify
+ * @returns {Promise<String>} - The access token
+ */
+export const exchangeCodeForToken = async (shop, code) => {
+    const url = `https://${shop}/admin/oauth/access_token`;
+    const response = await axios.post(url, {
+        client_id: process.env.SHOPIFY_API_KEY,
+        client_secret: process.env.SHOPIFY_API_SECRET,
+        code
+    });
+    return response.data.access_token;
+};
+
+/**
+ * Register Order Creation Webhook
+ * @param {String} shop - The .myshopify.com domain
+ * @param {String} accessToken - Shopify access token
+ * @returns {Promise<Boolean>}
+ */
+export const registerWebhook = async (shop, accessToken) => {
+    try {
+        const url = `https://${shop}/admin/api/2023-10/webhooks.json`;
+        const webhookUrl = `${process.env.BACKEND_URL}/api/webhooks/shopify/order-created`;
+        
+        const response = await axios.post(url, {
+            webhook: {
+                topic: 'orders/create',
+                address: webhookUrl,
+                format: 'json'
+            }
+        }, {
+            headers: {
+                'X-Shopify-Access-Token': accessToken,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        console.log(`[Shopify Webhook] Registered 'orders/create' for ${shop}`);
+        return true;
+    } catch (error) {
+        console.error(`[Shopify Webhook Error] Failed for ${shop}:`, error.response?.data || error.message);
+        return false;
+    }
+};
+
+/**
  * Cancel an order in Shopify
  * @param {String} shopDomain - The .myshopify.com domain
  * @param {String} accessToken - The offline access token

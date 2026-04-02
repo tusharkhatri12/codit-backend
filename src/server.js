@@ -54,6 +54,7 @@ import webhooksRoutes from './routes/webhooks.js';
 import riskRoutes from './routes/risk.js';
 import userRoutes from './routes/user.js';
 import testWhatsappRoutes from './routes/whatsappRoutes.js';
+import shopifyAuthRoutes from './routes/shopifyAuthRoutes.js';
 import { initQueues } from './queues/whatsappQueue.js';
 import { startExpirationJob } from './jobs/expirationJob.js';
 import { startReminderJob } from './jobs/reminderJob.js';
@@ -73,6 +74,7 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/webhooks', webhooksRoutes);
 app.use('/api/risk', riskRoutes);
 app.use('/api/user', userRoutes);
+app.use('/auth', shopifyAuthRoutes);
 
 // Exposed testing endpoint exclusively for explicit validation scripts internally (No JWT restrictions)
 app.use('/test', testWhatsappRoutes);
