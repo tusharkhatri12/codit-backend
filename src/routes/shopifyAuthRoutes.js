@@ -98,8 +98,8 @@ router.get('/shopify/callback', async (req, res) => {
         await registerWebhook(shop, accessToken);
 
         // Start Initial Sync (non-blocking)
-        import('../services/shopifyService.js').then(service => {
-            service.startInitialSync(shop, accessToken, Shop);
+        import('../services/shopifySyncService.js').then(service => {
+            service.syncShopifyOrders(shop, accessToken);
         });
 
         // Redirect back to frontend syncing page

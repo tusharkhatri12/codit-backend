@@ -41,10 +41,10 @@ const shopSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
-    createdAt: {
-        type: Date,
-        default: Date.now
+    initialSyncDone: {
+        type: Boolean,
+        default: false
     }
-});
+}, { timestamps: true });
 
 export default mongoose.model('Shop', shopSchema);
