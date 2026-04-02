@@ -23,6 +23,12 @@ app.use(express.urlencoded({ extended: true })); // Required for Twilio x-www-fo
 app.use(helmet());
 app.use(morgan('dev'));
 
+import passport from 'passport';
+import configurePassport from './config/passport.js';
+// Init Passport Strategy
+configurePassport();
+app.use(passport.initialize());
+
 // Init HTTP Server & Socket.io
 const server = createServer(app);
 const io = new Server(server, {
