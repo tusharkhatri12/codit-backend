@@ -1,3 +1,4 @@
+import express from 'express';
 import { connectShop, getMyShops, getSyncStatus } from '../controllers/shopsController.js';
 import { protect } from '../middlewares/auth.js';
 

@@ -49,7 +49,7 @@ export const connectShop = async (req, res, next) => {
 // @access  Private
 export const getMyShops = async (req, res, next) => {
     try {
-        const shops = await Shop.find({ owner: req.user._id });
+        const shops = await Shop.find({ owner: req.user.id });
         res.status(200).json({ success: true, data: shops });
     } catch (err) {
         res.status(400).json({ success: false, error: err.message });
