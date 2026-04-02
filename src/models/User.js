@@ -40,6 +40,18 @@ const userSchema = new mongoose.Schema({
         enum: ['user', 'admin'],
         default: 'user'
     },
+    emailVerified: {
+        type: Boolean,
+        default: false
+    },
+    otp: {
+        type: String,
+        select: false
+    },
+    otpExpiry: {
+        type: Date,
+        select: false
+    },
     createdAt: {
         type: Date,
         default: Date.now
