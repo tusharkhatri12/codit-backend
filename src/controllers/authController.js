@@ -39,7 +39,9 @@ export const signup = async (req, res, next) => {
             name,
             email,
             password,
-            role
+            role,
+            plan: 'starter',
+            isOnboarded: true
         });
 
         sendTokenResponse(user, 201, res);
